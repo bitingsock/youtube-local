@@ -548,6 +548,8 @@ def _get_upstream_videos(channel_id):
     quantized_upload_period = average_upload_period - (average_upload_period % (4*3600)) + 4*3600   # round up to nearest 4 hours
     randomized_upload_period = quantized_upload_period*(1 + secrets.randbelow(50)/50*0.5) # randomly between 1x and 1.5x
     next_check_delay = randomized_upload_period/10    # check at 10x the channel posting rate. might want to fine tune this number
+    if next_check_delay > 86400*3: # limit to 1day*3
+        next_check_delay = 86400*3 - secrets.randbelow(18000) # minus a random: 0 to 5 hours
     next_check_time = int(time.time() + next_check_delay)
 
     with open_database() as connection:
@@ -618,13 +620,15 @@ def _get_upstream_videos(channel_id):
             if settings.autocheck_subscriptions:
                 if not _is_muted(cursor, channel_id):
                     autocheck_job_application.put({'channel_id': channel_id, 'channel_name': channel_names[channel_id], 'next_check_time': next_check_time})
-
+    
+    from datetime import datetime
+    dt = datetime.now().strftime("%Y.%m.%d-%H:%M:%S")
     if number_of_new_videos == 0:
-        print('No new videos from ' + channel_status_name)
+        print(dt + ' No new videos from ' + channel_status_name)
     elif number_of_new_videos == 1:
-        print('1 new video from ' + channel_status_name)
+        print(dt + ' 1 new video from ' + channel_status_name)
     else:
-        print(str(number_of_new_videos) + ' new videos from ' + channel_status_name)
+        print(dt + ' ' + str(number_of_new_videos) + ' new videos from ' + channel_status_name)
 
 
 
@@ -923,7 +927,7 @@ def get_subscriptions_page():
     with open_database() as connection:
         with connection as cursor:
             tag = request.args.get('tag', None)
-            videos, number_of_videos_in_db = _get_videos(cursor, 60, (page - 1)*60, tag)
+            videos, number_of_videos_in_db = _get_videos(cursor, 76, (page - 1)*76, tag)
             for video in videos:
                 video['thumbnail'] = util.URL_ORIGIN + '/data/subscription_thumbnails/' + video['id'] + '.jpg'
                 video['type'] = 'video'
@@ -945,7 +949,7 @@ def get_subscriptions_page():
     return flask.render_template('subscriptions.html',
         header_playlist_names = local_playlist.get_playlist_names(),
         videos = videos,
-        num_pages = math.ceil(number_of_videos_in_db/60),
+        num_pages = math.ceil(number_of_videos_in_db/76),
         parameters_dictionary = request.args,
         tags = tags,
         current_tag = tag,
