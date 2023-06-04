@@ -231,6 +231,36 @@ def _extract_metadata_row_info(renderer_content):
 
     return info
 
+def _extract_from_music_renderer(renderer_content):
+    # latest format for the music list
+    info = {
+        'music_list': [],
+    }
+
+    for carousel in renderer_content.get('carouselLockups', []):
+        song = {}
+        carousel = carousel.get('carouselLockupRenderer', {})
+        video_renderer = carousel.get('videoLockup', {})
+        video_renderer_info = extract_item_info(video_renderer)
+        video_id = video_renderer_info.get('id')
+        song['url'] = concat_or_none('https://www.youtube.com/watch?v=',
+                                     video_id)
+        song['title'] = video_renderer_info.get('title')
+        for row in carousel.get('infoRows', []):
+            row = row.get('infoRowRenderer', {})
+            title = extract_str(row.get('title'))
+            data = extract_str(row.get('defaultMetadata'))
+            if title == 'SONG':
+                song['title'] = data
+            elif title == 'ARTIST':
+                song['artist'] = data
+            elif title == 'ALBUM':
+                song['album'] = data
+            elif title == 'WRITERS':
+                song['writers'] = data
+        info['music_list'].append(song)
+    return info
+
 def _extract_from_video_metadata(renderer_content):
     info = _extract_from_video_information_renderer(renderer_content)
     liberal_dict_update(info, _extract_likes_dislikes(renderer_content))
@@ -254,6 +284,7 @@ visible_extraction_dispatch = {
     'slimVideoActionBarRenderer': _extract_likes_dislikes,
     'slimOwnerRenderer': _extract_from_owner_renderer,
     'videoDescriptionHeaderRenderer': _extract_from_video_header_renderer,
+    'videoDescriptionMusicSectionRenderer': _extract_from_music_renderer,
     'expandableVideoDescriptionRenderer': _extract_from_description_renderer,
     'metadataRowContainerRenderer': _extract_metadata_row_info,
     # OR just this one, which contains SOME of the above inside it
@@ -792,7 +823,7 @@ def get_caption_url(info, language, format, automatic=False, translation_languag
         url += '&tlang=' + translation_language
     return url
 
-def update_with_age_restricted_info(info, player_response):
+def update_with_new_urls(info, player_response):
     '''Inserts urls from player_response json'''
     ERROR_PREFIX = 'Error getting missing player or bypassing age-restriction: '
 
