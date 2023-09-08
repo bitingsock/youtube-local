@@ -357,7 +357,8 @@ def _extract_watch_info_mobile(top_level):
         # https://www.androidpolice.com/2019/10/31/google-youtube-app-comment-section-below-videos/
         # https://www.youtube.com/watch?v=bR5Q-wD-6qo
         if header_type == 'commentsEntryPointHeaderRenderer':
-            comment_count_text = extract_str(comment_info.get('headerText'))
+            comment_count_text = extract_str(multi_get(
+                comment_info, 'commentCount', 'headerText'))
         else:
             comment_count_text = extract_str(deep_get(comment_info,
                 'header', 'commentSectionHeaderRenderer', 'countText'))
@@ -462,6 +463,13 @@ def _extract_formats(info, player_response):
 
     for yt_fmt in yt_formats:
         itag = yt_fmt.get('itag')
+
+        # Translated audio track
+        # Example: https://www.youtube.com/watch?v=gF9kkB0UWYQ
+        # Only get the original language for now so a foreign
+        # translation will not be picked just because it comes first
+        if deep_get(yt_fmt, 'audioTrack', 'audioIsDefault') is False:
+            continue
 
         fmt = {}
         fmt['itag'] = itag
