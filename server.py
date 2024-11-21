@@ -214,7 +214,7 @@ def site_dispatch(env, start_response):
         path = env['PATH_INFO']
 
         if (method=="POST"
-                and client_address not in ('127.0.0.1', '::1')
+                and client_address not in ('127.0.0.1', '::1', settings.trusted_foreign_address)
                 and not settings.allow_foreign_post_requests):
             yield error_code('403 Forbidden', start_response)
             return

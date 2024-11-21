@@ -62,6 +62,14 @@ For security reasons, enabling this is not recommended.''',
         'category': 'network',
     }),
 
+    ('trusted_foreign_address', {
+        'type': str,
+        'default': '',
+        'comment': '''requests from this address will not be considered "foreign".''',
+        'hidden': True,
+        'category': 'network',
+    }),
+
     ('subtitles_mode', {
         'type': int,
         'default': 0,
